@@ -9,16 +9,11 @@ include(cpu)
 include(add_boost)
 include(add_nss)
 
-message("Modules ${CMAKE_SOURCE_DIR} 
-Boost Source: ${BoostSourceDir} 
-Boost Date Time: ${BoostDateTimeLibs} 
-${BoostFilesystemLibs}
-Regex: ${BoostRegexLibs}.")
 link_directories(${BoostSourceDir}/stage/lib)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
     
-add_executable(proj1 main.cpp)
+add_executable(proj1 src/main.cpp)
 target_link_libraries(proj1
     ${BoostSystemLibs} 
     ${BoostFilesystemLibs}

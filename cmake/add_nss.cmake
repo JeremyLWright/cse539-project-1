@@ -17,8 +17,9 @@ include_directories(SYSTEM "${nss_source_dir}/dist/public")
 file(GLOB nss_libs_dir "${nss_source_dir}/dist/Linux*/lib/" "*.a")
 file(GLOB nss_header_dir "${nss_source_dir}/dist/Linux*/include/" "*.h")
 message("headers: ${nss_header_dir}")
-include_directories(${nss_header_dir})
+include_directories(SYSTEM ${nss_header_dir})
 file(GLOB static_nss_libs "${nss_libs_dir}" "*.a")
 link_directories(SYSTEM ${static_nss_libs})
+
 
 
