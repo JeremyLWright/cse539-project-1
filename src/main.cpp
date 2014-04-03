@@ -1,12 +1,17 @@
 /*
  * Demonstration program for hashing and MACs
  */
-
+#include <ostream>
 #include <iostream>
+#include <sstream>
+#include <fstream>
 
 #include "nss/pk11pub.h"
 #include "nss/nss.h"
 #include "boost/program_options.hpp"
+#include "boost/filesystem.hpp"
+
+#include "nss/base64.h"
 
 
 using namespace std;
@@ -21,6 +26,16 @@ printDigest(unsigned char *digest, unsigned int len)
     cout << endl;
 }
 
+
+
+void print_key(std::ostream& s, std::string data)
+{
+    auto data_base64 = BTOA_DataToAscii(reinterpret_cast<unsigned char const *>(data.c_str()), data.size());
+    for(auto i = 0; i < data.size(); ++i) //TODO I'm pretty sure this length is wrong
+        s << data_base64[i];
+    s << '\n';
+}
+
 /*
  * main
  */
@@ -29,6 +44,10 @@ main(int argc, const char *argv[])
 {
 
     namespace po = boost::program_options;
+    namespace fs = boost::filesystem;
+
+    std::string const magic_string("Our names are Jeremy Wright and Aaron Gibson. We are enrolled in CSE 539");
+
     po::options_description desc("CSE539 Project 1 by Jeremy Wright and Aaron Gibson");
     desc.add_options()
         ("help", "Produce this help message.")
@@ -47,6 +66,24 @@ main(int argc, const char *argv[])
         return 1;
     }
 
+
+    std::ifstream fpub_key(vm["publicKey"].as<string>());
+    std::string   pub_key(static_cast<std::stringstream const &>(std::stringstream() << fpub_key.rdbuf()).str());
+    std::ifstream fpriv_key(vm["privateKey"].as<string>());
+    std::string   priv_key(static_cast<std::stringstream const &>(std::stringstream() << fpriv_key.rdbuf()).str());
+    std::ifstream fcert(vm["cert"].as<string>());
+    std::string   cert(static_cast<std::stringstream const &>(std::stringstream() << fcert.rdbuf()).str());
+
+    std::cout << "Print Public Key" << '\n';
+    print_key(cout, pub_key);
+
+    std::cout << "Print Certificate" << '\n';
+    print_key(cout, cert);
+
+    std::cout << "Print Private Key" << '\n';
+    print_key(cout, priv_key);
+
+#if 0
     int status = 0;
     PK11SlotInfo *slot = 0;
     PK11SymKey *key = 0;
@@ -176,4 +213,5 @@ done:
   if (slot) PK11_FreeSlot(slot);
 
   return status;
+#endif
 }
