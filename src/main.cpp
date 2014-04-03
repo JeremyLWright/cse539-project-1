@@ -6,6 +6,8 @@
 
 #include "nss/pk11pub.h"
 #include "nss/nss.h"
+#include "boost/program_options.hpp"
+
 
 using namespace std;
 
@@ -25,6 +27,26 @@ printDigest(unsigned char *digest, unsigned int len)
     int
 main(int argc, const char *argv[])
 {
+
+    namespace po = boost::program_options;
+    po::options_description desc("CSE539 Project 1 by Jeremy Wright and Aaron Gibson");
+    desc.add_options()
+        ("help", "Produce this help message.")
+        ("publicKey", po::value<string>(), "Public Key.")
+        ("privateKey", po::value<string>(), "Private Key.")
+        ("cert", po::value<string>(), "Certificate")
+        ;
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if(vm.count("help"))
+    {
+        std::cout << desc << '\n';
+        return 1;
+    }
+
     int status = 0;
     PK11SlotInfo *slot = 0;
     PK11SymKey *key = 0;
