@@ -19,5 +19,8 @@ ExternalProject_Add(
     #LOG_INSTALL ON
     )
 
+ExternalProject_Get_Property( Cryptopp source_dir )
 # Now, set the include and linker paths.
+set( CryptoPP_INCLUDE_DIR ${source_dir} )
+set( CryptoPP_LIBRARY ${source_dir}/libcryptopp.a )
 

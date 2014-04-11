@@ -16,13 +16,14 @@
 #include "openssl/x509v3.h"
 #include "openssl/objects.h"
 #include "openssl/pem.h"
-#include "apps/apps.h"
 
 #include <stdexcept>
 
-#include "boost/program_options.hpp"
-#include "boost/filesystem.hpp"
+#include "Certificate.hpp"
+//#include "boost/program_options.hpp"
+//#include "boost/filesystem.hpp"
 
+#if 0
 struct x509_extensions 
 {
     std::string basic_constraints;
@@ -81,9 +82,6 @@ class certificate
 
 
 };
-#if 0
-
-using namespace std;
 
     static void
 printDigest(unsigned char *digest, unsigned int len)
@@ -105,6 +103,20 @@ void print_key(std::ostream& s, std::string data)
     s << '\n';
 }
 #endif
+
+int main(int argc, char** argv)
+{
+	if(argc < 2) {
+		std::cout << "Filename required as an argument.\n";
+		return 1;
+	}
+	X509Certificate cert(argv[1]);
+	
+	std::cout << cert << std::endl;
+	return 0;
+}
+
+#if 0
 /*
  * main
  */
@@ -140,7 +152,6 @@ main(int argc, const char *argv[])
     int e;
     certificate c(vm["cert"].as<std::string>());
 
-#if 0
     std::ifstream fpub_key(vm["publicKey"].as<string>());
     std::string   pub_key(static_cast<std::stringstream const &>(std::stringstream() << fpub_key.rdbuf()).str());
     std::ifstream fpriv_key(vm["privateKey"].as<string>());
@@ -165,14 +176,6 @@ main(int argc, const char *argv[])
     unsigned char digest[20]; /*Is there a way to tell how large the output is?*/
     unsigned int len;
     SECStatus s;
-
-    /* Initialize NSS
-     * If your application code has already initialized NSS, you can skip it
-     * here.
-     * This code uses the simplest of the Init functions, which does not
-     * require a NSS database to exist
-     */
-    NSS_NoDB_Init(".");
 
     /* Get a slot to use for the crypto operations */
     slot = PK11_GetInternalKeySlot();
@@ -286,5 +289,7 @@ done:
   if (slot) PK11_FreeSlot(slot);
 
   return status;
-#endif
 }
+
+#endif
+
