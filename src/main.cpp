@@ -5,14 +5,13 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <string>
 
-#include "nss/pk11pub.h"
-#include "nss/nss.h"
+#include "openssl/x509.h"
 #include "boost/program_options.hpp"
 #include "boost/filesystem.hpp"
 
-#include "nss/base64.h"
-
+#if 0
 
 using namespace std;
 
@@ -35,7 +34,7 @@ void print_key(std::ostream& s, std::string data)
         s << data_base64[i];
     s << '\n';
 }
-
+#endif
 /*
  * main
  */
@@ -51,9 +50,9 @@ main(int argc, const char *argv[])
     po::options_description desc("CSE539 Project 1 by Jeremy Wright and Aaron Gibson");
     desc.add_options()
         ("help", "Produce this help message.")
-        ("publicKey", po::value<string>(), "Public Key.")
-        ("privateKey", po::value<string>(), "Private Key.")
-        ("cert", po::value<string>(), "Certificate")
+        ("publicKey", po::value<std::string>(), "Public Key.")
+        ("privateKey", po::value<std::string>(), "Private Key.")
+        ("cert", po::value<std::string>(), "Certificate")
         ;
 
     po::variables_map vm;
@@ -67,6 +66,7 @@ main(int argc, const char *argv[])
     }
 
 
+#if 0
     std::ifstream fpub_key(vm["publicKey"].as<string>());
     std::string   pub_key(static_cast<std::stringstream const &>(std::stringstream() << fpub_key.rdbuf()).str());
     std::ifstream fpriv_key(vm["privateKey"].as<string>());
@@ -83,7 +83,6 @@ main(int argc, const char *argv[])
     std::cout << "Print Private Key" << '\n';
     print_key(cout, priv_key);
 
-#if 0
     int status = 0;
     PK11SlotInfo *slot = 0;
     PK11SymKey *key = 0;
