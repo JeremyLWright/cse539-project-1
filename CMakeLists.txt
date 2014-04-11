@@ -19,5 +19,7 @@ target_link_libraries(proj1
     ${BoostFilesystemLibs}
     ${BoostProgramOptionsLibs}
     ${BoostRegexLibs}
-    nss3
+    crypto
+    ssl
+    dl
     )

@@ -7,10 +7,80 @@
 #include <fstream>
 #include <string>
 
+#include "openssl/bio.h"
+#include "openssl/asn1.h"
+#include "openssl/err.h"
+#include "openssl/bn.h"
+#include "openssl/evp.h"
 #include "openssl/x509.h"
+#include "openssl/x509v3.h"
+#include "openssl/objects.h"
+#include "openssl/pem.h"
+#include "apps/apps.h"
+
+#include <stdexcept>
+
 #include "boost/program_options.hpp"
 #include "boost/filesystem.hpp"
 
+struct x509_extensions 
+{
+    std::string basic_constraints;
+    std::string key_usage;
+    std::string ca_policy;
+    std::string cert_type;
+    std::string revocation_url;
+};
+
+class certificate
+{
+
+    BIO* cert;
+    X509* x;
+    std::fstream file;
+    public:
+    certificate(std::string filename)
+    {
+        cert=BIO_new(BIO_s_file());
+        if(BIO_read_filename(cert,filename.c_str()) <= 0)
+        {
+            throw std::runtime_error("Cannot open file: "+filename);
+        }
+        x=d2i_X509_bio(cert,NULL);
+
+        if (x == NULL)
+        {
+            throw std::runtime_error("cannot decode certificate");
+        }
+    }
+
+    ~certificate()
+    {
+        BIO_free(cert);
+    }
+    int version;
+    std::string serial_number;
+    std::string signature_algorithm;
+    std::string issuer;
+    std::string validity_not_before;
+    std::string validity_not_after;
+
+    std::string subject;
+
+    std::string public_key_algorithm;
+
+    size_t public_key_length;
+    std::string public_key_modulus;
+    size_t public_key_exponent;
+
+    //std::string signature_algorithm;
+    std::string signature;
+
+    
+
+
+
+};
 #if 0
 
 using namespace std;
@@ -52,7 +122,7 @@ main(int argc, const char *argv[])
         ("help", "Produce this help message.")
         ("publicKey", po::value<std::string>(), "Public Key.")
         ("privateKey", po::value<std::string>(), "Private Key.")
-        ("cert", po::value<std::string>(), "Certificate")
+        ("cert", po::value<std::string>(), "DER format Certificate")
         ;
 
     po::variables_map vm;
@@ -65,6 +135,10 @@ main(int argc, const char *argv[])
         return 1;
     }
 
+    int const cert_format = FORMAT_ASN1;
+
+    int e;
+    certificate c(vm["cert"].as<std::string>());
 
 #if 0
     std::ifstream fpub_key(vm["publicKey"].as<string>());

@@ -12,6 +12,7 @@ ExternalProject_Add(
     )
 ExternalProject_Get_Property(openssl source_dir)
 include_directories(SYSTEM ${source_dir}/openssl/include)
+include_directories(SYSTEM ${source_dir})
 link_directories(SYSTEM ${source_dir}/openssl/lib)
 
 
