@@ -34,30 +34,30 @@
 #==================================================================================================#
 
 set(BoostComponents
-     atomic                   
-     chrono                   
+    #atomic                   
+    #chrono                   
      #context                  
      #coroutine                
-     date_time                
-     exception                
+     #date_time                
+     #exception                
      filesystem               
      #graph                    
      #graph_parallel           
-     iostreams                
+     #iostreams                
      #locale                   
-     log                      
-     math                     
+     #log                      
+     #math                     
      #mpi                      
      program_options          
      #python                   
-     random                   
-     regex                    
-     serialization            
+     #random                   
+     #regex                    
+     #serialization            
      #signals                  
      system                   
-     test                     
-     thread                   
-     timer                    
+     #test                     
+     #thread                   
+     #timer                    
      #wave 
       )
 set(BoostVersion 1.55.0)
