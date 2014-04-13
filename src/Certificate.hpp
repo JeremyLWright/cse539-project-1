@@ -72,6 +72,24 @@ public:
 	static X509Certificate parseFromFile(const std::string& filepath);
 }; // class X509Certificate
 
+class X509CertStore {
+public:
+	std::string rootCAfile;
+	
+	// Constructors
+	X509CertStore(const std::string& file);
+	~X509CertStore();
+
+	bool verifyCertificate(X509Certificate& cert, std::string& msg);
+	bool verifyCertificate(X509Certificate& cert, std::string& msg, int flags);
+	bool verifyCertificateAtTime(X509Certificate& cert, std::string& msg,
+		const boost::posix_time::ptime& p, int flags);
+	
+	// Will return true if the given certificate was actually issued by
+	// one of the certificates in this store.
+	bool isIssuedByTrustedSource(X509Certificate& cert);
+}; // class X509CertStore
+
 // Declare the streaming operator. We define it inline to avoid linker errors,
 // since this is really just a proxy call to "printCertificate()".
 inline std::ostream& operator<<(std::ostream& stm, const X509Certificate& cert) {

@@ -50,7 +50,7 @@ private:
 		//if(index < 0 || index > 63) {
 		//	// Error!
 		//}
-		return static_cast< char >(table[index]);
+		return static_cast< char >(table[static_cast<int>(index)]);
 	}
 
 	/**
@@ -305,6 +305,5 @@ inline std::string decodeToString(const std::string& input)
 	std::istringstream stream(input);
 	return decodeToString(stream);
 }
-
 
 

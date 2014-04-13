@@ -12,11 +12,11 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
 #include <openssl/x509_vfy.h>
 
 #include "Certificate.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <ctime>
@@ -55,6 +55,16 @@ T from_string(const string& str) {
 // dreaded 'static' function way).
 //
 namespace {
+time_t to_time_t(boost::posix_time::ptime t)
+{
+    using namespace boost::posix_time;
+    ptime epoch(boost::gregorian::date(1970,1,1));
+    time_duration::sec_type x = (t - epoch).total_seconds();
+
+    // ... check overflow here ...
+
+    return time_t(x);
+} 
 std::string convert(X509_NAME* name) {
 	// This is really F**KING DUMB.
 	// Basically, OpenSSL doesn't offer a way to write X509
@@ -148,6 +158,31 @@ string printBignum(BIGNUM* bn)
 	return result;
 }
 
+int convertHexStrToInt(const string& num)
+{
+	// We assume that "str" is a properly encoded hexadecimal string...
+	int exp = 1;
+	int result = 0;
+	string str = boost::algorithm::to_lower_copy(num);
+
+	string::const_reverse_iterator itr, end;
+	for(itr = str.rbegin(), end = str.rend(); itr != end; ++itr) {
+		if ((*itr >= '0')&&(*itr <= '9')) {
+			result += (exp * static_cast<int>(*itr - '0'));
+		}
+		// Handle the hexadecimal characters
+		else if ((*itr >= 'a')&&(*itr <= 'f')) {
+			result += (exp * (static_cast<int>(*itr - 'a') + 10));
+		}
+		// Error
+		else {
+		
+		}
+		exp *= 16;
+	}
+	return result;
+}
+
 std::string convert(ASN1_INTEGER* i) {
 	std::string result;
 	BIGNUM *bnser = ASN1_INTEGER_to_BN(i, NULL);
@@ -213,7 +248,7 @@ public_key_exponent(0), signature()
 		public_key_modulus = printBignum(pkey->pkey.rsa->n);
 
 		// Note that this number is currently stored in hexadecimal...
-		public_key_exponent = from_string< size_t >(printBignum(pkey->pkey.rsa->e));
+		public_key_exponent = convertHexStrToInt(printBignum(pkey->pkey.rsa->e));
 		break;
 	case EVP_PKEY_DSA:
 		public_key_algorithm = bits + " bit DSA Public Key";
@@ -246,6 +281,116 @@ X509Certificate::~X509Certificate()
 	if(cert) {
 		BIO_free(cert);
 	}
+}
+
+//=========================================================
+// X509CertStore Functions
+//=========================================================
+X509CertStore::X509CertStore(const string& file)
+:rootCAfile(file)
+{	
+}
+
+X509CertStore::~X509CertStore()
+{
+}
+
+bool X509CertStore::verifyCertificate(X509Certificate& cert, string& msg, int flags)
+{
+	X509_LOOKUP* lookup = NULL;
+	X509_STORE* store = NULL;
+	X509_STORE_CTX* ctx = NULL;
+	bool result = false;
+
+	// Allocate the store.
+	store = X509_STORE_new();
+	if(!store) {
+		throw runtime_error("Could not allocate X509_STORE for verification.");
+	}
+	
+	// Create the lookup table by loading the root certificate.
+	lookup = X509_STORE_add_lookup(store,X509_LOOKUP_file());
+	if(!lookup) {
+		throw runtime_error("X509_LOOKUP was not added to the store.");
+	}
+	if(!X509_LOOKUP_load_file(lookup, rootCAfile.c_str(), X509_FILETYPE_ASN1)) {
+		throw runtime_error("Error loading root certificate: " + rootCAfile);
+	}
+	
+	ctx = X509_STORE_CTX_new();
+	if(!ctx) {
+		throw runtime_error("Could not allocate X509_STORE_CTX for verification.");
+	}
+	X509_STORE_CTX_init(ctx, store, cert.x, NULL);
+	X509_STORE_CTX_set_flags(ctx, flags);
+	
+	int rc = X509_verify_cert(ctx);
+	if(rc == 1) {
+		result = true;
+	} else {
+		msg = X509_verify_cert_error_string(ctx->error);
+		result = false;
+	}
+	X509_STORE_CTX_free(ctx);
+	
+	return result;
+}
+
+bool X509CertStore::verifyCertificateAtTime(X509Certificate& cert, std::string& msg,
+	const boost::posix_time::ptime& p, int flags)
+{
+	X509_LOOKUP* lookup = NULL;
+	X509_STORE* store = NULL;
+	X509_STORE_CTX* ctx = NULL;
+	bool result = false;
+
+	// Allocate the store.
+	store = X509_STORE_new();
+	if(!store) {
+		throw runtime_error("Could not allocate X509_STORE for verification.");
+	}
+	
+	// Create the lookup table by loading the root certificate.
+	lookup = X509_STORE_add_lookup(store,X509_LOOKUP_file());
+	if(!lookup) {
+		throw runtime_error("X509_LOOKUP was not added to the store.");
+	}
+	if(!X509_LOOKUP_load_file(lookup, rootCAfile.c_str(), X509_FILETYPE_ASN1)) {
+		throw runtime_error("Error loading root certificate: " + rootCAfile);
+	}
+	
+	ctx = X509_STORE_CTX_new();
+	if(!ctx) {
+		throw runtime_error("Could not allocate X509_STORE_CTX for verification.");
+	}
+	X509_STORE_CTX_init(ctx, store, cert.x, NULL);
+	X509_STORE_CTX_set_flags(ctx, X509_V_FLAG_USE_CHECK_TIME | flags);
+	
+	// For this variant of the call, we set the verification time to what
+	// was passed in.
+	X509_STORE_CTX_set_time(ctx, 0, to_time_t(p));
+	
+	int rc = X509_verify_cert(ctx);
+	if(rc == 1) {
+		result = true;
+	} else {
+		msg = X509_verify_cert_error_string(ctx->error);
+		result = false;
+	}
+	X509_STORE_CTX_free(ctx);
+	
+	return result;}
+
+
+bool X509CertStore::verifyCertificate(X509Certificate& cert, string& msg)
+{
+	return verifyCertificate(cert, msg, X509_V_FLAG_CB_ISSUER_CHECK);
+	//X509_V_FLAG_CHECK_SS_SIGNATURE);
+}
+
+bool X509CertStore::isIssuedByTrustedSource(X509Certificate& cert)
+{
+	return false;
 }
 
 //=========================================================

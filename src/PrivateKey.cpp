@@ -2,7 +2,6 @@
 #include "PrivateKey.hpp"
 #include <iostream>
 #include <iterator>
-#include "base64.h"
 #include "openssl/evp.h"
 #include "openssl/pem.h"
 #include "openssl/rsa.h"
@@ -15,6 +14,8 @@
 #include <memory>
 #include <algorithm>
 #include <string.h>
+
+#include "base64.h"
 
 private_key::private_key(std::string key):
     rsa_pkey(NULL)
