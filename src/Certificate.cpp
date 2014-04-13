@@ -130,7 +130,7 @@ ptime convert_time(const ASN1_TIME* time) {
 	t.tm_sec = (str[i++] - '0') * 10;
 	t.tm_sec += (str[i++] - '0');
 
-	return from_time_t(mktime(&t));
+	return from_time_t(mktime(&t));ASN1_STRFLGS_RFC2253
 }
 
 string printBignum(BIGNUM* bn)
@@ -192,6 +192,30 @@ std::string convert(ASN1_INTEGER* i) {
 	// Remember to free the created BIGNUM instance.
 	BN_free(bnser);
 
+	return result;
+}
+
+std::string convertASNString(ASN1_STRING* p)
+{
+	// This is really F**KING DUMB.
+	// Yet again, we have to write to a temporary file first...
+	FILE* f = tmpfile();
+	char ch;
+	string result;
+
+	ASN1_STRING_print_ex_fp(f, p, ASN1_STRFLGS_RFC2253);
+
+	rewind(f);
+	
+	while( !feof(f) ) {
+		ch = fgetc(f);
+		if(ch > 0) {
+			result.append((char*) &ch, 1);
+		}
+	}
+
+	// Close the temporary file to delete it.
+	fclose(f);
 	return result;
 }
 
@@ -265,6 +289,7 @@ public_key_exponent(0), signature()
 	signature_algorithm = OBJ_nid2ln(pkey_nid);
 
 	// Get the actual signature now..
+	signature = convertASNString(x->signature);
 }
 
 X509Certificate::~X509Certificate()
@@ -346,12 +371,13 @@ bool X509CertStore::verifyCertificate(X509Certificate& cert, string& msg, int fl
 	if(!X509_LOOKUP_load_file(lookup, rootCAfile.c_str(), X509_FILETYPE_ASN1)) {
 		throw runtime_error("Error loading root certificate: " + rootCAfile);
 	}
-	
+	X509_STORE_set_flags(store, 0);
+
 	ctx = X509_STORE_CTX_new();
 	if(!ctx) {
 		throw runtime_error("Could not allocate X509_STORE_CTX for verification.");
 	}
-	X509_STORE_CTX_init(ctx, store, cert.x, NULL);
+	X509_STORE_CTX_init(ctx, store, cert.x, 0);
 	X509_STORE_CTX_set_flags(ctx, flags);
 	
 	int rc = X509_verify_cert(ctx);
@@ -388,12 +414,13 @@ bool X509CertStore::verifyCertificateAtTime(X509Certificate& cert, std::string& 
 	if(!X509_LOOKUP_load_file(lookup, rootCAfile.c_str(), X509_FILETYPE_ASN1)) {
 		throw runtime_error("Error loading root certificate: " + rootCAfile);
 	}
+	X509_STORE_set_flags(store, 0);
 	
 	ctx = X509_STORE_CTX_new();
 	if(!ctx) {
 		throw runtime_error("Could not allocate X509_STORE_CTX for verification.");
 	}
-	X509_STORE_CTX_init(ctx, store, cert.x, NULL);
+	X509_STORE_CTX_init(ctx, store, cert.x, 0);
 	X509_STORE_CTX_set_flags(ctx, X509_V_FLAG_USE_CHECK_TIME | flags);
 	
 	// For this variant of the call, we set the verification time to what
@@ -414,8 +441,7 @@ bool X509CertStore::verifyCertificateAtTime(X509Certificate& cert, std::string& 
 
 bool X509CertStore::verifyCertificate(X509Certificate& cert, string& msg)
 {
-	return verifyCertificate(cert, msg, X509_V_FLAG_CB_ISSUER_CHECK);
-	//X509_V_FLAG_CHECK_SS_SIGNATURE);
+	return verifyCertificate(cert, msg, X509_V_FLAG_CB_ISSUER_CHECK );
 }
 
 bool X509CertStore::isIssuedByTrustedSource(X509Certificate& cert)

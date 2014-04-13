@@ -29,8 +29,9 @@ public_key::~public_key()
 
 std::string public_key::encrypt(std::string msg)
 {
-    EVP_PKEY *pkey = EVP_PKEY_new();
     EVP_CIPHER_CTX ctx;
+    RSA* rsa_pkey = NULL;
+    EVP_PKEY *pkey = EVP_PKEY_new();
 
     uint8_t buffer_out[4096 + EVP_MAX_IV_LENGTH];
 
