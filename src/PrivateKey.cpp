@@ -1,6 +1,7 @@
 
 #include "PrivateKey.hpp"
 #include <iostream>
+#include <iterator>
 #include "base64.h"
 #include "openssl/evp.h"
 #include "openssl/pem.h"
@@ -21,6 +22,7 @@ private_key::private_key(std::string key):
     FILE* f = fopen(key.c_str(), "r");
     if(!PEM_read_RSAPrivateKey(f, &rsa_pkey, NULL, NULL))
         throw std::runtime_error("Unable to decode key.");
+    fclose(f);
     
 }
 
@@ -31,34 +33,28 @@ private_key::~private_key()
 std::string private_key::decrypt(std::istream & emsg)
 {
     std::stringstream ss;
-    int retval = 0;
     EVP_PKEY *pkey = EVP_PKEY_new();
     EVP_CIPHER_CTX ctx;
 
-    //uint8_t buffer[4096];
     uint8_t buffer_out[4096 + EVP_MAX_IV_LENGTH];
 
-    size_t len;
     int len_out;
     int eklen;
-    uint32_t eklen_n;
-    //unsigned char iv[EVP_MAX_IV_LENGTH];
     if(!EVP_PKEY_assign_RSA(pkey, rsa_pkey))
         throw std::runtime_error("Unable to assign key.");
 
     EVP_CIPHER_CTX_init(&ctx);
-    //uint8_t* ek = new uint8_t[EVP_PKEY_size(pkey)];
 
     emsg >> eklen;
     if(eklen > EVP_PKEY_size(pkey))
         throw std::runtime_error("Incorrect key size. Read: "+std::to_string(eklen));
 
-    char s[172];
-    emsg.read(s, 172);
+    char s[BASE64_ENCODED_KEY_SIZE];
+    emsg.read(s, BASE64_ENCODED_KEY_SIZE);
     auto ek = base64_decode(s);
 
-    char i[24];
-    emsg.read(i, 24);
+    char i[BASE64_ENCODED_IV_SIZE];
+    emsg.read(i, BASE64_ENCODED_IV_SIZE);
     auto iv = base64_decode(i);
     
     if(!EVP_OpenInit(&ctx, EVP_aes_256_cbc(), &ek[0], eklen, &iv[0], pkey))
@@ -67,9 +63,6 @@ std::string private_key::decrypt(std::istream & emsg)
     std::string es;
     emsg >> es;
     auto buffer = base64_decode(es);
-    std::cout << "Unpacked Data Size: " << buffer.size() << '\n';
-
-    //emsg.read((char*)buffer, 4096);
 
     if(!EVP_OpenUpdate(&ctx, buffer_out, &len_out, &buffer[0], buffer.size()))
         throw std::runtime_error("Unable to decrypt.");
@@ -79,9 +72,8 @@ std::string private_key::decrypt(std::istream & emsg)
     if(!EVP_OpenFinal(&ctx, buffer_out+len_out, &flen_out))
         throw std::runtime_error("Unable to unpack final block.");
 
-    for(int i = 0; i < len_out+flen_out; ++i)
-        ss << buffer_out[i];
-    
+    std::copy_n(buffer_out, len_out+flen_out, std::ostream_iterator<char>(ss));
+
     return ss.str();
 }
 
