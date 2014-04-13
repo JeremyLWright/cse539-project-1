@@ -50,8 +50,6 @@ std::string public_key::encrypt(std::string msg)
     if(!EVP_SealInit(&ctx, EVP_aes_256_cbc(), &ek, &eklen, iv, &pkey, 1))
         throw std::runtime_error("Unable to init seal.");
 
-    eklen_n = htonl(eklen);
-
      std::stringstream ss;
      ss << eklen;
      auto b = base64_encode(&ek[0], eklen);
@@ -64,7 +62,14 @@ std::string public_key::encrypt(std::string msg)
      std::cout << "IV: " << c << '\n';
      ss << c;
 
+     std::cout << "Msg Size: " << msg.size() << '\n';
      EVP_SealUpdate(&ctx, buffer_out, &len_out, (uint8_t const *)(msg.c_str()), msg.size());
-     ss << base64_encode(&buffer_out[0], len_out);
+     std::cout << "Encrypted Size: " << len_out << '\n';
+     //ss << base64_encode(&buffer_out[0], len_out);
+
+     int flen_out;
+     EVP_SealFinal(&ctx, buffer_out+len_out, &flen_out);
+     std::cout << "Encrypted Size: " << flen_out + len_out<< '\n';
+     ss << base64_encode(&buffer_out[0], len_out+flen_out);
      return ss.str();
 }

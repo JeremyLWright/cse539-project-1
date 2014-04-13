@@ -1,5 +1,6 @@
 
 #include "PrivateKey.hpp"
+#include <iostream>
 #include "base64.h"
 #include "openssl/evp.h"
 #include "openssl/pem.h"
@@ -66,13 +67,19 @@ std::string private_key::decrypt(std::istream & emsg)
     std::string es;
     emsg >> es;
     auto buffer = base64_decode(es);
+    std::cout << "Unpacked Data Size: " << buffer.size() << '\n';
 
     //emsg.read((char*)buffer, 4096);
 
     if(!EVP_OpenUpdate(&ctx, buffer_out, &len_out, &buffer[0], buffer.size()))
         throw std::runtime_error("Unable to decrypt.");
 
-    for(int i = 0; i < len_out; ++i)
+    int flen_out;
+    
+    if(!EVP_OpenFinal(&ctx, buffer_out+len_out, &flen_out))
+        throw std::runtime_error("Unable to unpack final block.");
+
+    for(int i = 0; i < len_out+flen_out; ++i)
         ss << buffer_out[i];
     
     return ss.str();
