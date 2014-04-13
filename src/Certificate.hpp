@@ -18,6 +18,9 @@
 #include "openssl/objects.h"
 #include "openssl/pem.h"
 
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+
+
 class X509Certificate {
 public:
 	// Instance variables.
@@ -27,13 +30,14 @@ public:
 	int version;
 	std::string serial_number;
 	std::string signature_algorithm;
-	std::string issuer;
-	std::string validity_not_before;
-	std::string validity_not_after;
+	boost::posix_time::ptime notBefore;
+	boost::posix_time::ptime notAfter;
 	
 	std::string subject;
+	std::string issuer;
+	
+	EVP_PKEY *pkey;
 	std::string public_key_algorithm;
-
 	size_t public_key_length;
 	std::string public_key_modulus;
 	size_t public_key_exponent;

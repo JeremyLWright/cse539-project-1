@@ -30,6 +30,7 @@ target_link_libraries(proj1
     ${BoostFilesystemLibs}
     ${BoostProgramOptionsLibs}
     ${BoostRegexLibs}
+    ${BoostDateTimeLibs}
     crypto
     ssl
     dl
