@@ -130,7 +130,7 @@ ptime convert_time(const ASN1_TIME* time) {
 	t.tm_sec = (str[i++] - '0') * 10;
 	t.tm_sec += (str[i++] - '0');
 
-	return from_time_t(mktime(&t));ASN1_STRFLGS_RFC2253
+	return from_time_t(mktime(&t));//ASN1_STRFLGS_RFC2253
 }
 
 string printBignum(BIGNUM* bn)
