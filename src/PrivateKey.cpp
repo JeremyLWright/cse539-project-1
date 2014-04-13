@@ -16,9 +16,17 @@
 #include <string.h>
 
 #include "base64.h"
+private_key::private_key():
+    rsa_pkey(NULL),
+    BASE64_ENCODED_KEY_SIZE(172),
+    BASE64_ENCODED_IV_SIZE(24)
+{
+}
 
 private_key::private_key(std::string key):
-    rsa_pkey(NULL)
+    rsa_pkey(NULL),
+    BASE64_ENCODED_KEY_SIZE(172),
+    BASE64_ENCODED_IV_SIZE(24)
 {
     FILE* f = fopen(key.c_str(), "r");
     if(!PEM_read_RSAPrivateKey(f, &rsa_pkey, NULL, NULL))
