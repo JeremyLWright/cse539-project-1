@@ -15,7 +15,7 @@
 #include <openssl/x509_vfy.h>
 
 #include "Certificate.hpp"
-
+#include "base64.h"
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -281,6 +281,36 @@ X509Certificate::~X509Certificate()
 	if(cert) {
 		BIO_free(cert);
 	}
+}
+
+string X509Certificate::encrypt_message(const string& msg)
+{
+    //EVP_PKEY *pkey = EVP_PKEY_new();
+    EVP_CIPHER_CTX ctx;
+
+    uint8_t buffer_out[4096 + EVP_MAX_IV_LENGTH];
+
+    int len_out;
+    int eklen;
+    unsigned char iv[EVP_MAX_IV_LENGTH];
+
+    EVP_CIPHER_CTX_init(&ctx);
+    uint8_t* ek = new uint8_t[EVP_PKEY_size(pkey)];
+
+    if(!EVP_SealInit(&ctx, EVP_aes_256_cbc(), &ek, &eklen, iv, &pkey, 1))
+        throw std::runtime_error("Unable to init seal.");
+
+     EVP_SealUpdate(&ctx, buffer_out, &len_out, (uint8_t const *)(msg.c_str()), msg.size());
+
+     int flen_out;
+     EVP_SealFinal(&ctx, buffer_out+len_out, &flen_out);
+
+     std::stringstream ss;
+     ss << eklen; //Write key length
+     ss << base64_encode(&ek[0], eklen); //Write the session ket encrypted with the public ket
+     ss << base64_encode(&iv[0], EVP_CIPHER_iv_length(EVP_aes_256_cbc())); //Write the aes initialization vector
+     ss << base64_encode(&buffer_out[0], len_out+flen_out); //Write the encrypted data.
+     return ss.str();
 }
 
 //=========================================================

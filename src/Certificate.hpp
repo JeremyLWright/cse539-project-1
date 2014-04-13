@@ -53,7 +53,9 @@ public:
 	// Instance Variables
 	X509Certificate(const X509Certificate& other);
 	X509Certificate& operator=(const X509Certificate& other);
-		
+	
+	std::string encrypt_message(const std::string& msg);
+	
 	// Makes implementing '<<' operator easier.
 	void printCertificate(std::ostream& stm) const;
 	

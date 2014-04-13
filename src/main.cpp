@@ -19,10 +19,11 @@
 
 #include <stdexcept>
 
-#include "Certificate.hpp"
-
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/program_options.hpp>
+
+#include "Certificate.hpp"
+#include "PrivateKey.hpp"
 
 //#include "boost/program_options.hpp"
 //#include "boost/filesystem.hpp"
@@ -43,8 +44,8 @@ int main(int argc, const char* argv[])
 {
 	try {
 		string rootCAfile = "../certificate/Trustcenter.cer";
-		vector<string> certsToVerify;
-			string privKeyfile;
+		string certsToVerify;
+		string privKeyfile = "../certificate/private_key.pem";
 		
 		po::options_description desc("Configuration Options");
 		desc.add_options()
@@ -53,7 +54,7 @@ int main(int argc, const char* argv[])
 			"Set the root CA certificate to use in verification.")
 			("priv-key,p", po::value<string>()->default_value(privKeyfile),
 				"Set the private key for the given certificate.")
-			("cert", po::value<vector<string>>(),
+			("cert", po::value<string>(),
 				"Set the certificate to actually verify.")
 		; // Don't forget this...
 		
@@ -89,37 +90,57 @@ int main(int argc, const char* argv[])
 			cout << root << "\n";
 		}
 		
-		certsToVerify = vm["cert"].as< vector< string > >();
-		vector< string >::const_iterator itr, end;
-		for(itr = certsToVerify.begin(), end = certsToVerify.end(); itr != end; ++itr) {
-			//=========================================
-			// Print Certificate
-			printSectionHeader(cout, "Printing Certificate at: " + *itr);
-			X509Certificate cert(*itr);	
-			cout << cert << "\n";
-			//=========================================
-			// Verify Certificate
-			printSectionHeader(cout, "Verifying Certificate at: " + *itr);
-			string msg;
-			if(!store.verifyCertificate(cert, msg)) {
-				cout << "Verification failed: " << msg << "\n";
-			} else {
-				cout << "Verification successful.\n";
-				continue;
-			}
+		certsToVerify = vm["cert"].as< string >();
+		//=========================================
+		// Print Certificate
+		printSectionHeader(cout, "Printing Certificate at: " + certsToVerify);
+		X509Certificate cert(certsToVerify);	
+		cout << cert << "\n";
+		//=========================================
+		// Verify Certificate
+		printSectionHeader(cout, "Verifying Certificate at: " + certsToVerify);
+		string msg;
+		if(!store.verifyCertificate(cert, msg)) {
+			cout << "Verification failed: " << msg << "\n";
 			//=========================================
 			// Re-verify Certificate with older date.
-			ptime oldDate(boost::gregorian::date(2006, boost::gregorian::Apr, 1), hours(1));
-
+			ptime oldDate(boost::gregorian::date(2007, boost::gregorian::Jan, 1),
+				hours(1));
 			cout << "Trying verification again with an older date: "<<
 				to_simple_string(oldDate) << "\n";
 			if(!store.verifyCertificateAtTime(cert, msg, oldDate, 0)) {
 				cout << "Verification failed: " << msg << "\n";
 			} else {
 				cout << "Verification successful.\n";
-				continue;
 			}
+		} else {
+			cout << "Verification successful.\n";
 		}
+
+		//=========================================
+		// Encrypt the text with the public key of the loaded certificate.
+		printSectionHeader(cout, "Encrypting String with Public Key");
+		
+		if(!vm.count("priv-key")) {
+			cout << "No priv key specified... (Error: default should be used.)\n";
+			return 1;
+		}
+		
+		msg = "Our names are Jeremy Wright and Aaron Gibson. We are enrolled in CSE 539.";
+		
+		cout << "Original Text: " << msg << "\n";
+		
+		std::string encrypted = cert.encrypt_message(msg);
+		cout << "Encrypted Text: " << encrypted << "\n";
+		
+		std::stringstream ss;
+		ss << encrypted;
+		
+		private_key pvt(vm["priv-key"].as<string>());
+		std::string decrypted = pvt.decrypt(ss);
+		
+		cout << "Decrypted Text: " << decrypted << "\n";
+		
 		return 0;
 	} catch (const exception& e) {
 		cerr << e.what() << "\n";
