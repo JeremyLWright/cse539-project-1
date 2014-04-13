@@ -20,6 +20,11 @@
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
+// This class is a convenience class to store the properties in the
+// subject and issuer lines of the certificate.
+//struct IDFields {
+//}; // struct IDFields
+
 
 class X509Certificate {
 public:
@@ -36,6 +41,7 @@ public:
 	std::string subject;
 	std::string issuer;
 	
+	// Note, pkey->rsa stores the RSA data structure for an RSA key.
 	EVP_PKEY *pkey;
 	std::string public_key_algorithm;
 	size_t public_key_length;
@@ -51,6 +57,12 @@ public:
 	// Makes implementing '<<' operator easier.
 	void printCertificate(std::ostream& stm) const;
 	
+	// You would think that this could be declared const, but since
+	// we make calls to non-const pointers of this class (i.e. pkey),
+	// we'll get compiler errors. Yes, we could declare pkey mutable,
+	// but that is counterproductive, in my opinion.
+	bool verifyCertificate() const;
+
 	X509Certificate(const std::string& filename);
 	~X509Certificate();
 #ifdef HAS_MOVE_SEMANTICS

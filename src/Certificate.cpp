@@ -13,6 +13,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <openssl/x509_vfy.h>
+
 #include "Certificate.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -91,45 +93,46 @@ ptime convert_time(const ASN1_TIME* time) {
 	if (time->type == V_ASN1_UTCTIME) /* two digit year */
 	{
 		t.tm_year = (str[i++] - '0') * 10;
-		t.tm_year += (str[++i] - '0');if (t.tm_year < 70)
-		t.tm_year += 100;
+		t.tm_year += (str[i++] - '0');
+		if (t.tm_year < 70)
+			t.tm_year += 100;
 	}
 	else if (time->type == V_ASN1_GENERALIZEDTIME) /* four digit year */
 	{
 		t.tm_year = (str[i++] - '0') * 1000;
-		t.tm_year += (str[++i] - '0') * 100;
-		t.tm_year += (str[++i] - '0') * 10;
-		t.tm_year += (str[++i] - '0');
+		t.tm_year += (str[i++] - '0') * 100;
+		t.tm_year += (str[i++] - '0') * 10;
+		t.tm_year += (str[i++] - '0');
 		t.tm_year -= 1900;
 	}
 	t.tm_mon = (str[i++] - '0') * 10;
-	t.tm_mon += (str[++i] - '0') - 1; // -1 since January is 0 not 1.
+	t.tm_mon += (str[i++] - '0') - 1; // -1 since January is 0 not 1.
 
 	t.tm_mday = (str[i++] - '0') * 10;
-	t.tm_mday += (str[++i] - '0');
+	t.tm_mday += (str[i++] - '0');
 
 	t.tm_hour = (str[i++] - '0') * 10;
-	t.tm_hour += (str[++i] - '0');
+	t.tm_hour += (str[i++] - '0');
 
 	t.tm_min = (str[i++] - '0') * 10;
-	t.tm_min += (str[++i] - '0');
+	t.tm_min += (str[i++] - '0');
 
 	t.tm_sec = (str[i++] - '0') * 10;
-	t.tm_sec += (str[++i] - '0');
+	t.tm_sec += (str[i++] - '0');
 
 	return from_time_t(mktime(&t));
 }
 
-std::string convert(ASN1_INTEGER* i) {
-	std::string result;
-	int ch;
-	BIGNUM *bnser = ASN1_INTEGER_to_BN(i, NULL);
-	
+string printBignum(BIGNUM* bn)
+{
 	// This is really F**KING DUMB.
 	// Yet again, we have to write to a temporary file first...
 	FILE* f = tmpfile();
-	
-	BN_print_fp(f, bnser);
+
+	char ch;
+	string result;
+
+	BN_print_fp(f, bn);
 
 	rewind(f);
 	
@@ -139,12 +142,20 @@ std::string convert(ASN1_INTEGER* i) {
 			result.append((char*) &ch, 1);
 		}
 	}
+
+	// Close the temporary file to delete it.
+	fclose(f);
+	return result;
+}
+
+std::string convert(ASN1_INTEGER* i) {
+	std::string result;
+	BIGNUM *bnser = ASN1_INTEGER_to_BN(i, NULL);
+
+	result = printBignum(bnser);
 	
 	// Remember to free the created BIGNUM instance.
 	BN_free(bnser);
-	
-	// Close the temporary file to delete it.
-	fclose(f);
 
 	return result;
 }
@@ -179,7 +190,7 @@ public_key_exponent(0), signature()
 	// OpenSSL X509 call (which is really just a preprocessor macro for accessing
 	// the correct field in the X509 struct, but whatever).
 	
-	version = X509_get_version(x);
+	version = X509_get_version(x) + 1;
 	// Subject
 	subject = convert(X509_get_subject_name(x));
 	serial_number = convert(X509_get_serialNumber(x));
@@ -199,6 +210,10 @@ public_key_exponent(0), signature()
 	switch(pkey->type) {
 	case EVP_PKEY_RSA:
 		public_key_algorithm = bits + " bit RSA Public Key";
+		public_key_modulus = printBignum(pkey->pkey.rsa->n);
+
+		// Note that this number is currently stored in hexadecimal...
+		public_key_exponent = from_string< size_t >(printBignum(pkey->pkey.rsa->e));
 		break;
 	case EVP_PKEY_DSA:
 		public_key_algorithm = bits + " bit DSA Public Key";
@@ -207,6 +222,14 @@ public_key_exponent(0), signature()
 		public_key_algorithm = bits + " bit Public Key of unknown type.";
 		break; 
 	}
+	int pkey_nid = OBJ_obj2nid(x->sig_alg->algorithm);
+	if (pkey_nid == NID_undef) {
+		throw std::runtime_error("Unknown Signature algorithm name!");
+	}
+
+	signature_algorithm = OBJ_nid2ln(pkey_nid);
+
+	// Get the actual signature now..
 }
 
 X509Certificate::~X509Certificate()
