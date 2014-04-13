@@ -12,6 +12,7 @@
 #include <memory>
 #include <algorithm>
 #include <string.h>
+#include <iostream>
 
 public_key::public_key(std::string key):
     rsa_pkey(NULL)
@@ -53,7 +54,15 @@ std::string public_key::encrypt(std::string msg)
 
      std::stringstream ss;
      ss << eklen;
-     ss << base64_encode(&ek[0], eklen);
+     auto b = base64_encode(&ek[0], eklen);
+     std::cout << b.size() << '\n';
+     std::cout << "EK: " << b << '\n';
+     ss << b;
+     
+     auto c = base64_encode(&iv[0], EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
+     std::cout << c.size() << '\n';
+     std::cout << "IV: " << c << '\n';
+     ss << c;
 
      EVP_SealUpdate(&ctx, buffer_out, &len_out, (uint8_t const *)(msg.c_str()), msg.size());
      ss << base64_encode(&buffer_out[0], len_out);

@@ -38,7 +38,7 @@ set(BoostComponents
     #chrono                   
      #context                  
      #coroutine                
-     #date_time                
+     date_time                
      #exception                
      filesystem               
      #graph                    

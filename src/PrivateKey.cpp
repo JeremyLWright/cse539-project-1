@@ -34,39 +34,46 @@ std::string private_key::decrypt(std::istream & emsg)
     EVP_PKEY *pkey = EVP_PKEY_new();
     EVP_CIPHER_CTX ctx;
 
-    uint8_t buffer[4096];
+    //uint8_t buffer[4096];
     uint8_t buffer_out[4096 + EVP_MAX_IV_LENGTH];
 
     size_t len;
     int len_out;
     int eklen;
     uint32_t eklen_n;
-    unsigned char iv[EVP_MAX_IV_LENGTH];
+    //unsigned char iv[EVP_MAX_IV_LENGTH];
     if(!EVP_PKEY_assign_RSA(pkey, rsa_pkey))
         throw std::runtime_error("Unable to assign key.");
 
     EVP_CIPHER_CTX_init(&ctx);
-    uint8_t* ek = new uint8_t[EVP_PKEY_size(pkey)];
+    //uint8_t* ek = new uint8_t[EVP_PKEY_size(pkey)];
 
     emsg >> eklen;
     if(eklen > EVP_PKEY_size(pkey))
         throw std::runtime_error("Incorrect key size. Read: "+std::to_string(eklen));
 
-    for(int i = 0; i < eklen; ++i)
-        emsg >> ek[i];
-    
-    for(int i = 0; i < EVP_CIPHER_iv_length(EVP_aes_256_cbc()); ++i)
-        emsg >> iv[i];
+    char s[172];
+    emsg.read(s, 172);
+    auto ek = base64_decode(s);
 
-    if(!EVP_OpenInit(&ctx, EVP_aes_256_cbc(), ek, eklen, iv, pkey))
+    char i[24];
+    emsg.read(i, 24);
+    auto iv = base64_decode(i);
+    
+    if(!EVP_OpenInit(&ctx, EVP_aes_256_cbc(), &ek[0], eklen, &iv[0], pkey))
         throw std::runtime_error("Unable to read key from file.");
 
-    char c;
-    emsg.read((char*)buffer, 4096);
-    if(!EVP_OpenUpdate(&ctx, buffer_out, &len_out, buffer, emsg.gcount()))
+    std::string es;
+    emsg >> es;
+    auto buffer = base64_decode(es);
+
+    //emsg.read((char*)buffer, 4096);
+
+    if(!EVP_OpenUpdate(&ctx, buffer_out, &len_out, &buffer[0], buffer.size()))
         throw std::runtime_error("Unable to decrypt.");
+
     for(int i = 0; i < len_out; ++i)
-        ss << buffer[i];
+        ss << buffer_out[i];
     
     return ss.str();
 }
