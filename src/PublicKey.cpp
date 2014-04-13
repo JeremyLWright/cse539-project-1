@@ -55,12 +55,7 @@ std::string public_key::encrypt(std::string msg)
      ss << eklen;
      ss << base64_encode(&ek[0], eklen);
 
-     //len = base64_encode(iv, d, EVP_CIPHER_iv_length(EVP_aes_256_cbc())
-     //std::copy(base64_text(ek.get()), eklen, ostream_iterator<char>(ss));
-     //std::copy_n(base64_text(iv), EVP_CIPHER_iv_length(EVP_aes_256_cbc()), std::ostream_iterator<char>(ss));
-
      EVP_SealUpdate(&ctx, buffer_out, &len_out, (uint8_t const *)(msg.c_str()), msg.size());
      ss << base64_encode(&buffer_out[0], len_out);
      return ss.str();
 }
-
