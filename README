@@ -1,0 +1,14 @@
+CSE 539 Project 1, Aaron Gibson, and Jeremy Wright
+
+Our project is written in C++ and depends on boost, openssl, and builds with cmake.
+
+To run this project, please execute the boostrap.sh script. 
+
+This script assumes a ubuntu system, and will install the required dependencies prior to building our project.
+
+Example:
+ubuntu@ip-172-31-10-157:~/cse539-project-1$ ls
+bootstrap.sh  certificate  cmake  CMakeLists.txt  README  src  test_key.cpp
+ubuntu@ip-172-31-10-157:~/cse539-project-1$ ./bootstrap.sh 
+
+Please accept the requested install packages to successfully build the project. Thank you.
