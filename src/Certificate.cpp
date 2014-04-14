@@ -428,7 +428,7 @@ bool X509CertStore::verifyCertificateAtTime(X509Certificate& cert, std::string& 
 	X509_STORE_CTX_set_time(ctx, 0, to_time_t(p));
 	
 	int rc = X509_verify_cert(ctx);
-	if(rc == 1) {
+	if(rc == X509_V_OK) {
 		result = true;
 	} else {
 		msg = X509_verify_cert_error_string(ctx->error);
@@ -436,7 +436,8 @@ bool X509CertStore::verifyCertificateAtTime(X509Certificate& cert, std::string& 
 	}
 	X509_STORE_CTX_free(ctx);
 	
-	return result;}
+	return result;
+}
 
 
 bool X509CertStore::verifyCertificate(X509Certificate& cert, string& msg)

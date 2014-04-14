@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <iostream>
 #include <sstream>
 #include "openssl/rsa.h"
 
@@ -15,5 +16,7 @@ public:
     private_key();
     ~private_key();
     std::string decrypt(std::istream& emsg);
+
+void print(std::ostream& stream);
 
 };

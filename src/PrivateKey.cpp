@@ -16,6 +16,37 @@
 #include <string.h>
 
 #include "base64.h"
+
+using namespace std;
+
+namespace {
+string printBignum(BIGNUM* bn)
+{
+	// This is really F**KING DUMB.
+	// Yet again, we have to write to a temporary file first...
+	FILE* f = tmpfile();
+
+	char ch;
+	string result;
+
+	BN_print_fp(f, bn);
+
+	rewind(f);
+	
+	while( !feof(f) ) {
+		ch = fgetc(f);
+		if(ch > 0) {
+			result.append((char*) &ch, 1);
+		}
+	}
+
+	// Close the temporary file to delete it.
+	fclose(f);
+	return result;
+}
+
+}
+
 private_key::private_key():
     rsa_pkey(NULL),
     BASE64_ENCODED_KEY_SIZE(172),
@@ -37,6 +68,12 @@ private_key::private_key(std::string key):
 
 private_key::~private_key()
 {
+}
+
+void private_key::print(std::ostream& stream)
+{
+	stream << "Modulus: " << printBignum(rsa_pkey->n)
+		<< "\nd: " << printBignum(rsa_pkey->d) << "\n";
 }
 
 std::string private_key::decrypt(std::istream & emsg)

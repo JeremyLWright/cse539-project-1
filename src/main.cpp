@@ -46,6 +46,7 @@ int main(int argc, const char* argv[])
 		string rootCAfile = "../certificate/Trustcenter.cer";
 		string certsToVerify;
 		string privKeyfile = "../certificate/private_key.pem";
+//		string password = "pass:raghu";
 		
 		po::options_description desc("Configuration Options");
 		desc.add_options()
@@ -54,6 +55,8 @@ int main(int argc, const char* argv[])
 			"Set the root CA certificate to use in verification.")
 			("priv-key,p", po::value<string>()->default_value(privKeyfile),
 				"Set the private key for the given certificate.")
+//			("password", po::value<string>()->default_value(password),
+//				"Set the password used to decrypt the private key.")
 			("cert", po::value<string>(),
 				"Set the certificate to actually verify.")
 		; // Don't forget this...
@@ -118,6 +121,17 @@ int main(int argc, const char* argv[])
 		}
 
 		//=========================================
+		// Print private key and password
+		printSectionHeader(cout, "Getting Private key at: " + privKeyfile);
+		
+		//private_key pvt(privKeyfile, password);
+		private_key pvt(privKeyfile);
+		
+		cout << "Private key parameters:\n";
+		pvt.print(cout);
+		cout << "\n";
+
+		//=========================================
 		// Encrypt the text with the public key of the loaded certificate.
 		printSectionHeader(cout, "Encrypting String with Public Key");
 		
@@ -135,8 +149,6 @@ int main(int argc, const char* argv[])
 		
 		std::stringstream ss;
 		ss << encrypted;
-		
-		private_key pvt(vm["priv-key"].as<string>());
 		std::string decrypted = pvt.decrypt(ss);
 		
 		cout << "Decrypted Text: " << decrypted << "\n";
