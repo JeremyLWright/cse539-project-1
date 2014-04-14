@@ -10,8 +10,7 @@ echo "####################################"
 echo "## Aaron Gibson, and Jeremy Wright #"
 echo "##         CSE 539 Project 1       #"
 echo "####################################"
-
-./test_encrypt ../certificate/public_key.pem ../certificate/private_key.pem
+./proj1 -r ../certificate/Trustcenter.cer -p ../certificate/private_key.pem --cert ../certificate/Raghupub.cer
 echo "###############"
 echo "## Completed ##"
 echo "###############"
